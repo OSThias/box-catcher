@@ -3,31 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Box Catcher - Safe Edition</title>
+<title>Box Catcher - Ultimate Edition</title>
 <style>
     body { margin: 0; height: 100vh; display: flex; justify-content: center; align-items: center; background: #1a1a2e; font-family: 'Segoe UI', sans-serif; color: white; overflow: hidden; touch-action: none; }
-    .game-container { background: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 20px; text-align: center; width: 95%; max-width: 500px; backdrop-filter: blur(10px); }
+    .game-container { background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 20px; text-align: center; width: 95%; max-width: 600px; backdrop-filter: blur(10px); }
     .stats { display: flex; justify-content: space-around; margin-bottom: 10px; font-size: 1.1em; font-weight: bold; }
     canvas { background: #0f3460; border-radius: 10px; border: 2px solid rgba(255,255,255,0.1); display: none; width: 100%; height: auto; }
+    
     .menu { display: flex; flex-direction: column; gap: 10px; }
     button { padding: 12px; border-radius: 10px; border: none; background: #e94560; color: white; font-weight: bold; cursor: pointer; }
-    .highscore-list { margin-top: 15px; text-align: left; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; font-size: 0.85em; }
+    
+    .highscore-list { margin-top: 10px; text-align: left; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; font-size: 0.85em; }
     .highscore-item { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding: 3px 0; }
-    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: none; justify-content: center; align-items: center; flex-direction: column; z-index: 100; padding: 20px; text-align: center;}
+
+    /* Touch-Steuerung Layout */
+    .touch-controls-container { display: none; justify-content: space-between; margin-top: 15px; width: 100%; }
+    .touch-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+    .t-btn { background: rgba(255, 255, 255, 0.2); width: 45px; height: 45px; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 1.2em; user-select: none; -webkit-user-select: none; }
+    .t-p1 { border-bottom: 3px solid #ff2e63; }
+    .t-p2 { border-bottom: 3px solid #00d2ff; }
+
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: none; justify-content: center; align-items: center; flex-direction: column; z-index: 100; text-align: center; }
     .p1-text { color: #ff2e63; } .p2-text { color: #00d2ff; }
-    input { padding: 12px; border-radius: 8px; border: none; width: 80%; margin-bottom: 10px; font-size: 1em; }
+    input { padding: 10px; border-radius: 5px; border: none; width: 70%; margin: 10px 0; }
 </style>
 </head>
 <body>
 
 <div class="game-container">
     <div id="mainMenu" class="menu">
-        <h1>🌍 Box Catcher</h1>
-        <button onclick="initGame('single')">Einzelspieler (Highscore)</button>
+        <h1>📦 Box Catcher</h1>
+        <button onclick="initGame('single')">Einzelspieler (WASD)</button>
         <button onclick="initGame('multi')">Mehrspieler (Lokal)</button>
-        
         <div class="highscore-list">
-            <div style="text-align:center; font-weight:bold; margin-bottom:5px;">🏆 BESTENLISTE</div>
+            <div style="text-align:center; font-weight:bold;">🏆 BESTENLISTE</div>
             <div id="highscoreDisplay">Lade...</div>
         </div>
     </div>
@@ -39,62 +48,55 @@
             <span id="p2Stat" class="p2-text" style="display:none">P2: <span id="score2">0</span></span>
         </div>
         <canvas id="gameCanvas" width="500" height="400"></canvas>
+        
+        <div id="allTouchControls" class="touch-controls-container">
+            <div class="touch-grid">
+                <div></div> <div class="t-btn t-p1" onpointerdown="keys['KeyW']=true" onpointerup="keys['KeyW']=false">▲</div> <div></div>
+                <div class="t-btn t-p1" onpointerdown="keys['KeyA']=true" onpointerup="keys['KeyA']=false">◀</div>
+                <div class="t-btn t-p1" onpointerdown="keys['KeyS']=true" onpointerup="keys['KeyS']=false">▼</div>
+                <div class="t-btn t-p1" onpointerdown="keys['KeyD']=true" onpointerup="keys['KeyD']=false">▶</div>
+            </div>
+            <div id="p2TouchGrid" class="touch-grid" style="visibility: hidden;">
+                <div></div> <div class="t-btn t-p2" onpointerdown="keys['ArrowUp']=true" onpointerup="keys['ArrowUp']=false">▲</div> <div></div>
+                <div class="t-btn t-p2" onpointerdown="keys['ArrowLeft']=true" onpointerup="keys['ArrowLeft']=false">◀</div>
+                <div class="t-btn t-p2" onpointerdown="keys['ArrowDown']=true" onpointerup="keys['ArrowDown']=false">▼</div>
+                <div class="t-btn t-p2" onpointerdown="keys['ArrowRight']=true" onpointerup="keys['ArrowRight']=false">▶</div>
+            </div>
+        </div>
     </div>
 </div>
 
 <div class="overlay" id="overlay">
     <h1 id="winnerText">Zeit um!</h1>
     <p id="finalResult"></p>
-    <div id="highscoreInputArea" style="display:none;">
+    <div id="saveArea" style="display:none;">
         <input type="text" id="playerName" placeholder="Dein Name" maxlength="10">
         <br>
-        <button id="saveBtn" onclick="saveScore()" style="background:gold; color:black; width: 85%;">Speichern & Beenden</button>
+        <button onclick="saveScore()">Speichern</button>
     </div>
-    <button id="backBtn" onclick="location.reload()" style="margin-top:15px; background:#555;">Ohne Speichern zurück</button>
+    <button onclick="location.reload()" style="margin-top:10px; background:#555;">Menü</button>
 </div>
 
 <script>
-// Falls du jsonbin.io nutzt, hier IDs eintragen. Sonst bleibt es lokal.
-const BIN_ID = ''; 
-const API_KEY = ''; 
-
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 let mode = 'single', gameRunning = false, timeLeft = 20, score1 = 0, score2 = 0, keys = {};
+const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
 const p1 = { x: 50, y: 180, color: "#ff2e63", targetColor: "#ff8da1", size: 30, speed: 6 };
-const p2 = { x: 420, y: 180, color: "#00d2ff", targetColor: "#80eaff", size: 30, speed: 4 };
+const p2 = { x: 420, y: 180, color: "#00d2ff", targetColor: "#80eaff", size: 30, speed: 6 };
 const target1 = { x: 0, y: 0, size: 20 }, target2 = { x: 0, y: 0, size: 20 };
 
-// LÄDT SCORES (Lokal + Online Versuch)
-async function loadScores() {
-    let scores = JSON.parse(localStorage.getItem('boxScores')) || [];
-    
-    if(BIN_ID && API_KEY) {
-        try {
-            const res = await fetch(`https://api.jsonbin.io{BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
-            const data = await res.json();
-            if(data.record.scores) scores = data.record.scores;
-        } catch (e) { console.log("Online-Sync fehlgeschlagen"); }
-    }
-    
-    renderScores(scores);
-    return scores;
-}
-
-function renderScores(scores) {
-    const display = document.getElementById('highscoreDisplay');
-    display.innerHTML = scores.length ? '' : '<div style="text-align:center">Noch keine Rekorde</div>';
-    scores.sort((a,b) => b.score - a.score).slice(0, 5).forEach((s, i) => {
-        display.innerHTML += `<div class="highscore-item"><span>${i+1}. ${s.name}</span><span>${s.score}</span></div>`;
-    });
-}
-
 function initGame(m) {
-    mode = m;
+    mode = m; score1 = 0; score2 = 0; timeLeft = 20;
     document.getElementById("mainMenu").style.display = "none";
     document.getElementById("gameUI").style.display = "block";
     canvas.style.display = "block";
-    if(mode === 'multi') document.getElementById("p2Stat").style.display = "inline";
+    if(isTouch) document.getElementById("allTouchControls").style.display = "flex";
+    if(mode === 'multi') {
+        document.getElementById("p2Stat").style.display = "inline";
+        if(isTouch) document.getElementById("p2TouchGrid").style.visibility = "visible";
+    }
     spawnTarget(target1); spawnTarget(target2);
     gameRunning = true; startTimer(); update();
 }
@@ -130,55 +132,47 @@ function checkColl(a, b) { return a.x < b.x + b.size && a.x + a.size > b.x && a.
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = p1.targetColor; ctx.fillRect(target1.x, target1.y, target1.size, target1.size);
-    if(mode === 'multi') { ctx.fillStyle = p2.targetColor; ctx.fillRect(target2.x, target2.y, target2.size, target2.size); }
     ctx.fillStyle = p1.color; ctx.fillRect(p1.x, p1.y, p1.size, p1.size);
-    if(mode === 'multi') { ctx.fillStyle = p2.color; ctx.fillRect(p2.x, p2.y, p2.size, p2.size); }
+    if(mode === 'multi') {
+        ctx.fillStyle = p2.targetColor; ctx.fillRect(target2.x, target2.y, target2.size, target2.size);
+        ctx.fillStyle = p2.color; ctx.fillRect(p2.x, p2.y, p2.size, p2.size);
+    }
 }
 
 function startTimer() {
     const itv = setInterval(() => {
+        if(!gameRunning) { clearInterval(itv); return; }
         timeLeft--; document.getElementById("time").textContent = timeLeft;
-        if(timeLeft <= 0) { clearInterval(itv); endGame(); }
+        if(timeLeft <= 0) { gameRunning = false; endGame(); }
     }, 1000);
 }
 
 function endGame() {
-    gameRunning = false;
     document.getElementById("overlay").style.display = "flex";
     if(mode === 'single') {
         document.getElementById("finalResult").textContent = `Punkte: ${score1}`;
-        document.getElementById("highscoreInputArea").style.display = "block";
+        document.getElementById("saveArea").style.display = "block";
     } else {
-        const winTxt = score1 > score2 ? "P1 GEWINNT!" : (score2 > score1 ? "P2 GEWINNT!" : "UNENTSCHIEDEN!");
-        document.getElementById("winnerText").innerHTML = winTxt;
+        document.getElementById("winnerText").textContent = score1 > score2 ? "P1 GEWINNT!" : (score2 > score1 ? "P2 GEWINNT!" : "UNENTSCHIEDEN!");
         document.getElementById("finalResult").textContent = `P1: ${score1} | P2: ${score2}`;
     }
 }
 
-async function saveScore() {
+function saveScore() {
     const name = document.getElementById("playerName").value || "Anonym";
     let scores = JSON.parse(localStorage.getItem('boxScores')) || [];
     scores.push({ name, score: score1 });
     scores.sort((a,b) => b.score - a.score);
-    scores = scores.slice(0, 5);
-    
-    // Lokal speichern (funktioniert immer)
-    localStorage.setItem('boxScores', JSON.stringify(scores));
-    
-    // Online Versuch (nur wenn IDs da sind)
-    if(BIN_ID && API_KEY) {
-        document.getElementById("saveBtn").innerText = "Cloud-Sync...";
-        try {
-            await fetch(`https://api.jsonbin.io{BIN_ID}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
-                body: JSON.stringify({ scores: scores })
-            });
-        } catch (e) { console.log("Online-Save fehlgeschlagen"); }
-    }
+    localStorage.setItem('boxScores', JSON.stringify(scores.slice(0, 5)));
     location.reload();
 }
 
+function loadScores() {
+    let scores = JSON.parse(localStorage.getItem('boxScores')) || [];
+    const display = document.getElementById('highscoreDisplay');
+    display.innerHTML = scores.length ? '' : 'Noch keine Rekorde';
+    scores.forEach((s, i) => display.innerHTML += `<div class="highscore-item"><span>${i+1}. ${s.name}</span><span>${s.score}</span></div>`);
+}
 loadScores();
 </script>
 </body>
